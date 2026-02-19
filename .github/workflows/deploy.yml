@@ -20,7 +20,7 @@ jobs:
                   key: ${{ secrets.SERVER_SSH_KEY }}
                   script: |
                     APP_DIR="$HOME/mlops-app"
-                    REPO_URL="git@github.com:Znis/MLOps-Project.git"
+                    REPO_URL="https://github.com/Znis/MLOps-Project.git"
                     BRANCH="main"
 
                     if [ ! -d "$APP_DIR/.git" ]; then
