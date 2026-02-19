@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  # Backend API Service
+  backend:
+    build: ./backend
+    container_name: mlops-backend
+    depends_on:
+      - redis
+      - qdrant
+      - ollama
+    env_file:
+      - ./backend/.env
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - QDRANT_URL=http://qdrant:6334
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    networks:
+      - mlops-network
+
+  # Frontend Web App Service
+  webapp:
+    build: ./webapp
+    container_name: mlops-webapp
+    depends_on:
+      - backend
+    env_file:
+      - ./webapp/.env
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    networks:
+      - mlops-network
+
+  # Redis for chat history
+  redis:
+    image: redis/redis-stack-server:latest
+    container_name: mlops-redis
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+      - "8001:8001"
+    environment:
+      - REDIS_ARGS=--save 600 1 --save 300 10 --save 60 100
+    restart: unless-stopped
+    networks:
+      - mlops-network
+
+  # Qdrant vector database
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: mlops-qdrant
+    volumes:
+      - qdrant_data:/qdrant/storage
+    ports:
+      - "6334:6334"
+      - "6333:6333"
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    restart: unless-stopped
+    networks:
+      - mlops-network
+
+  # Ollama LLM service
+  ollama:
+    image: ollama/ollama
+    container_name: mlops-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    environment:
+      - OLLAMA_CONTEXT_LENGTH=4096
+      - OLLAMA_KEEP_ALIVE=30m
+    restart: unless-stopped
+    networks:
+      - mlops-network
+
+  # Ollama model puller - pulls qwen3:1.7b model after ollama starts
+  ollama-pull:
+    image: curlimages/curl:latest
+    container_name: mlops-ollama-pull
+    depends_on:
+      - ollama
+    command: >
+      sh -c "
+        echo 'Waiting for Ollama service to be ready...';
+        sleep 10;
+        until curl -s http://ollama:11434/api/tags > /dev/null 2>&1; do
+          echo 'Waiting for Ollama API...';
+          sleep 5;
+        done;
+        echo 'Ollama is ready. Pulling qwen3:1.7b model...';
+        curl -X POST http://ollama:11434/api/pull -d '{\"name\": \"qwen3:1.7b\"}';
+        echo 'Model pull initiated successfully';
+      "
+    networks:
+      - mlops-network
+    restart: "no"
+
+volumes:
+  redis_data:
+    driver: local
+  qdrant_data:
+    driver: local
+  ollama:
+    driver: local
+
+networks:
+  mlops-network:
+    driver: bridge

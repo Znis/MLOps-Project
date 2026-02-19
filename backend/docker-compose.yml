@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    depends_on:
+      - redis
+      - qdrant
+      - ollama
+    environment:
+      - ALLOW_ORIGINS
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen3:1.7b}
+      - QDRANT_URL=http://qdrant:6334
+      - EMBEDDING_MODEL
+      - EMBEDDING_DIMENSIONS
+      - QDRANT_COLLECTION
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - EXPORT_DIR
+      - CHUNK_SIZE
+      - CHUNK_OVERLAP
+    ports:
+      - "8000:8000"
+
+  redis:
+    image: redis/redis-stack-server:latest
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+      - "8001:8001"
+    environment:
+      - REDIS_ARGS=--save 600 1 --save 300 10 --save 60 100
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    volumes:
+      - qdrant_data:/qdrant/storage
+    ports:
+      - "6334:6334"
+      - "6333:6333"
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama:/root/.ollama
+    environment:
+      - OLLAMA_CONTEXT_LENGTH=${OLLAMA_CONTEXT_LENGTH:-4096}
+      - OLLAMA_KEEP_ALIVE=${OLLAMA_KEEP_ALIVE:-30m}
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  qdrant_data:
+  ollama:
