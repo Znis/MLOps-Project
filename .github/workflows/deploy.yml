@@ -40,7 +40,7 @@ jobs:
                     EOF
 
                     echo "Creating frontend .env file..."
-                    cat <<EOF > frontend/.env
+                    cat <<EOF > webapp/.env
                     ${{ secrets.FRONTEND_ENV }}
                     EOF
 
