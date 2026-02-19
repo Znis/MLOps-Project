@@ -34,19 +34,13 @@ jobs:
                     git reset --hard origin/$BRANCH
                     git clean -fd
 
-                    echo "Creating backend .env file..."
-                    cat <<EOF > backend/.env
-                    ${{ secrets.BACKEND_ENV }}
-                    EOF
+                    echo "${{ secrets.BACKEND_ENV }}" > backend/.env
+                    echo "${{ secrets.FRONTEND_ENV }}" > webapp/.env
 
-                    echo "Creating frontend .env file..."
-                    cat <<EOF > webapp/.env
-                    ${{ secrets.FRONTEND_ENV }}
-                    EOF
 
                     docker compose up -d --build --remove-orphans
                     docker image prune -f
                     
-                    sudo docker exec ollama ollama pull qwen2.5:3b
+                    sudo docker exec mlops-ollama ollama pull qwen2.5:3b
 
                     echo "Deployment complete!"
