@@ -49,19 +49,23 @@ async def add_chunks_to_vector_db(chunks: list[dict]) -> None:
 
 async def search_vector_db(query_vector: list[float], top_k: int | None = None, client: QdrantClient | None = None) -> list[dict]:
     """Search the knowledge base by vector; returns list of {score, chunk_id, text, doc_name}."""
-    top_k = top_k or settings.VECTOR_SEARCH_TOP_K
-    client = client or get_qdrant()
-    response = client.query_points(
-        collection_name=settings.QDRANT_COLLECTION,
-        query=query_vector,
-        limit=top_k,
-    )
-    return [
-        {
-            "score": hit.score,
-            "chunk_id": hit.payload.get("chunk_id", str(hit.id)) if hit.payload else str(hit.id),
-            "text": hit.payload.get("text", "") if hit.payload else "",
-            "doc_name": hit.payload.get("doc_name", "") if hit.payload else "",
-        }
-        for hit in response.points
-    ]
+    try:
+        top_k = top_k or settings.VECTOR_SEARCH_TOP_K
+        client = client or get_qdrant()
+        response = client.query_points(
+            collection_name=settings.QDRANT_COLLECTION,
+            query=query_vector,
+            limit=top_k,
+        )
+        return [
+            {
+                "score": hit.score,
+                "chunk_id": hit.payload.get("chunk_id", str(hit.id)) if hit.payload else str(hit.id),
+                "text": hit.payload.get("text", "") if hit.payload else "",
+                "doc_name": hit.payload.get("doc_name", "") if hit.payload else "",
+            }
+            for hit in response.points
+        ]
+    except Exception as e:
+        print(f"Error searching vector database: {e}")
+        return []
