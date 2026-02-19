@@ -10,7 +10,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
-              uses: actions/checkout@v6
+              uses: actions/checkout@v4
             
             - name: Deploy via SSH
               uses: appleboy/ssh-action@v1
@@ -44,9 +44,9 @@ jobs:
                     ${{ secrets.FRONTEND_ENV }}
                     EOF
 
-                    docker compose down --remove-orphans
-                    docker image prune -f
                     docker compose up -d --build --remove-orphans
+                    docker image prune -f
                     
+                    sudo docker exec ollama ollama pull qwen2.5:3b
 
                     echo "Deployment complete!"
